@@ -1,0 +1,304 @@
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Author: Eibriel
+
+
+# LÓGICA DIFUSA
+###############
+
+function trapezoid (min, med_1, med_2, max, val)
+  if val <= min
+    return 0.0
+  else if min < val and val <= med_1
+    return (val - min) / (med_1 - min)
+  else if val >= med_1 and val <= med_2
+    return 1.0
+  else if med_2 < val and val < max
+    return (max - val) / (max - med_2)
+  else if max <= val
+    return 0.0
+  end
+end
+
+function triangle (min, med, max, val)
+  if val <= min
+    return 0.0
+  else if min < val and val <= med
+    return (val - min) / (med - min)
+  else if med < val and val < max
+    return (max - val) / (max - med)
+  else if max <= val
+    return 0.0
+  end
+end
+
+function ramp_left (min, max, val)
+  if val <= min
+    return 1.0
+  else if min < val and val <= max
+    return (val - min) / (max - min)
+  else if val >= max
+    return 0.0
+  end
+end
+
+function ramp_right (min, max, val)
+  if val <= min
+    return 0.0
+  else if min < val and val <= max
+    return (max - val) / (max - min)
+  else if val >= max
+    return 1.0
+  end
+end
+
+function mu (val)
+  return val
+end
+
+# DATOS ABSOLUTOS
+#################
+
+#right_val = 0
+fire_cicle -= 0
+if fire_cicle < 0
+  fire_cicle = 0
+end
+
+if energy > old_energy
+  x = 0
+  y = 0
+  visibility_change = 0
+  modo = 0
+  disparos = 0
+end
+
+# Mi posición absoluta
+x += speed * sin(direction)
+y += speed * cos(direction)
+
+# Posición absoluta del enemigo
+enemy_x = x + (enemy_distance * sin(enemy_angle+direction))
+enemy_y = y + (enemy_distance * cos(enemy_angle+direction))
+
+# ¿Cuanto avanzó el enemigo desde el fotograma anterior?
+dif_x = old_enemy_x - enemy_x
+dif_y = old_enemy_y - enemy_y
+
+# Obtengo la rotación del enemigo
+enemy_rotation = atan2(dif_x, dif_y)
+if enemy_rotation < 0
+  enemy_rotation += 360
+end
+enemy_rotation = 360 - enemy_rotation
+
+# Obtengo la distancia recorrida por el enemigo = velocidad
+if dif_x == 0 and dif_y == 0
+  enemy_speed = 0
+else
+  enemy_speed = sqrt(pow(dif_x,2)+pow(dif_y,2))
+end
+
+if enemy_speed > 5
+  enemy_speed = 0
+end
+
+# Ángulo de giro sinusoidal
+# para evitar disparos enemigos
+sin_time += 2
+if sin_time > 360
+  sin_time = 0
+end
+sin_desviacion = sin(sin_time)
+
+# SELECIÓN DE MODO
+###################
+
+if enemy_visible != old_enemy_visible
+  visibility_change += 1
+end
+
+if visibility_change > 20 and abs(x) < 1000
+  modo = 1
+end
+
+if !(disparos == 0)
+	energy_ratio = energy / disparos
+else
+  energy_ratio = 5
+end
+
+if disparos > 30 and energy_ratio < 1
+  modo = 1
+end
+
+#modo = 1
+modo = 0
+
+# PROGRAMACIÓN
+####################
+
+if modo == 0
+	# MODO 0
+  # INTELIGENCIA ARTIFICIAL
+  
+  if enemy_visible
+    
+    # Tiempo que tomaría el proyectil en llegar al enemigo
+    bulet_time = enemy_distance / 10
+    
+    # Predicción de la posición
+    # del enemigo en el momento en que el
+    # proyectil alcance esa posición
+    next_x = enemy_x - (dif_x * bulet_time)
+    next_y = enemy_y - (dif_y * bulet_time)
+    
+    # Próximos enemy_distance y bulet_time
+    enemy_distance_next = sqrt(pow(x - next_x,2)+pow(y - next_y,2))
+    bulet_time_next = enemy_distance_next / 10
+    
+    bulet_time_dif = bulet_time_next - bulet_time
+    
+    # Predicción de la posición
+    # del enemigo en el momento en que el
+    # proyectil alcance esa posición (un poco antes)
+    next_x = enemy_x - (dif_x * (bulet_time + (bulet_time_dif/2)))
+    next_y = enemy_y - (dif_y * (bulet_time + (bulet_time_dif/2)))
+    
+    enemy_angle_next = atan2(next_x - x, next_y - y)
+    if enemy_angle_next < 0
+      enemy_angle_next += 360
+    end
+    
+    # Si estamos muy cerca apuntar directamente
+    if enemy_distance > 50 and !(old_enemy_x == 0) and !(old_enemy_y == 0)
+      right( enemy_angle_next - direction )
+    else
+			right( enemy_angle )
+    end
+    
+    #aaa = old_enemy_distance - enemy_distance
+    
+    #a_muy_lejos = ramp_right(450, 500, old_enemy_distance - enemy_distance)
+    #a_lejos = triangle(425, 450, 500, old_enemy_distance - enemy_distance)
+    #a_medio = trapezoid(100, 200, 425, 450, old_enemy_distance - enemy_distance)
+    #a_cerca = triangle(50, 100, 200, old_enemy_distance - enemy_distance)
+    #a_muy_cerca = ramp_left(50, 100, old_enemy_distance - enemy_distance)
+    
+    a_muy_lejos = ramp_right(450, 500, enemy_distance)
+    a_lejos = triangle(425, 450, 500, enemy_distance)
+    a_medio = trapezoid(100, 200, 425, 450, enemy_distance)
+    a_cerca = triangle(50, 100, 200, enemy_distance)
+    a_muy_cerca = ramp_left(50, 100, enemy_distance)
+    
+    output_1 = -5.0
+    output_2 = 2.0
+    output_4 = 5.0
+    output_5 = 2.0
+    output_6 = -5.0
+    
+    ad_speed = ((mu(a_muy_lejos)*output_1) + (mu(a_lejos)*output_2) + (mu(a_medio)*output_3) + (mu(a_cerca)*output_4) + (mu(a_muy_cerca)*output_5) + (mu(a_muy_cerca)*output_6)) / (mu(a_muy_lejos) + mu(a_lejos) + mu(a_medio) + mu(a_cerca) + mu(a_muy_cerca))
+    # Si el enemigo está detenido nos detenemos
+    if enemy_speed == 0
+      slower(3)
+    else
+    	faster(ad_speed)
+    end
+    
+    lost = 0
+    last_enemy_angle = enemy_angle
+  else if lost < 100
+    # Si hace poco que se perdió
+    # al enemigo de vista
+    # sigo avanzando
+    lost += 1
+    faster(5)
+    #right( (last_enemy_angle / 2) + sin_desviacion )
+    
+    # Si me disparan es lo mismo
+    # que si estuviese perdido desde hace mucho
+    if energy < old_energy
+      lost = 100
+    end
+  else
+    # Si hace mucho que se perdió
+    # al enemigo de vista
+    # freno y miro alrededor
+    slower(15)
+    right ( 40 )
+  end
+  
+else if modo == 1
+  # MODO 1
+  # ESCONDIDAS
+  
+  faster(5)
+  if enemy_visible
+    right( 50 + sin_desviacion )
+  else
+  	right ( sin_desviacion * 5 )
+  end
+
+end
+#right
+
+# Lógica disparos
+
+if enemy_visible
+  aprox = direction - enemy_angle_next
+  if aprox > 180
+	aprox -= 360
+  end
+  if a < -180
+		aprox += 360 
+  end
+  
+  if abs(aprox) < 1
+    if fire
+      disparos += 1
+      fire_cicle = 50
+    end
+  end
+  if enemy_distance < 100 and abs(enemy_angle) < 45
+    if fire
+      disparos += 1
+      fire_cicle = 50
+    end
+  end
+  if enemy_distance < 50 #and abs(enemy_angle) < 45
+    if fire
+      disparos += 1
+      fire_cicle = 50
+    end
+  end
+end
+
+# OLD
+#####
+
+if !enemy_visible
+  enemy_speed = 0
+  enemy_x = 0
+  enemy_y = 0
+end
+
+old_enemy_x = enemy_x
+old_enemy_y = enemy_y
+old_energy = energy
+old_enemy_visible = enemy_visible
+old_direction = direction
+old_enemy_angle = enemy_angle
+old_enemy_distance = enemy_distance
+
+
